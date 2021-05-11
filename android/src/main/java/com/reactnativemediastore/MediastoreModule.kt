@@ -77,7 +77,8 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
           item.putString("title", cursor.getString(titleColumn))
           item.putString("album", cursor.getString(albumColumn))
           item.putString("artist", cursor.getString(artistColumn))
-          item.putString("genreId", cursor.getString(artistColumn))
+          item.putString("genreId", cursor.getString(genreIdColumn))
+          item.putString("genreName", cursor.getString(genreNameColumn))
 
           item.putString("contentUri", "content://media" + externalContentUri.path + "/" + id)
 
