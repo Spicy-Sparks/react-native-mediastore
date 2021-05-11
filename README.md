@@ -15,7 +15,27 @@ import Mediastore from "react-native-mediastore";
 
 // ...
 
-const result = await Mediastore.multiply(3, 7);
+const result = await Mediastore.readAudioVideoExternalMedias();
+```
+
+```js
+type MediastoreFileType = {
+  id: number,
+  name: string,
+  duration: number,
+  size: number,
+  mime: string,
+  title: string,
+  album: string,
+  artist: string,
+  genreId: string,
+  genreName: string,
+  contentUri: string
+}
+
+type MediastoreType = {
+  readAudioVideoExternalMedias(): Promise<Array<MediastoreFileType>>;
+};
 ```
 
 ## Contributing
