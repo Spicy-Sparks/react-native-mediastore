@@ -5,6 +5,12 @@ type MediastoreFileType = {
   name: string,
   duration: number,
   size: number,
+  mime: string,
+  title: string,
+  album: string,
+  artist: string,
+  genreId: string,
+  genreName: string,
   contentUri: string
 }
 
