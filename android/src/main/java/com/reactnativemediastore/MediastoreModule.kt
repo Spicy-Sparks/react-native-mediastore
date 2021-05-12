@@ -25,9 +25,7 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
       mimeColumn: String,
       titleColumn: String,
       albumColumn: String,
-      artistColumn: String,
-      genreIdColumn: String,
-      genreNameColumn: Strimg
+      artistColumn: String
     ): Array<WritableMap> {
 
       val files = mutableListOf<WritableMap>()
@@ -40,9 +38,7 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         mimeColumn,
         titleColumn,
         albumColumn,
-        artistColumn,
-        genreIdColumn,
-        genreNameColumn
+        artistColumn
       )
 
       val query = reactApplicationContext.contentResolver.query(
@@ -61,8 +57,6 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         val titleColumn = cursor.getColumnIndexOrThrow(titleColumn)
         val albumColumn = cursor.getColumnIndexOrThrow(albumColumn)
         val artistColumn = cursor.getColumnIndexOrThrow(artistColumn)
-        val genreIdColumn = cursor.getColumnIndexOrThrow(genreIdColumn)
-        val genreNameColumn = cursor.getColumnIndexOrThrow(genreNameColumn)
 
         while (cursor.moveToNext()) {
 
@@ -77,8 +71,6 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
           item.putString("title", cursor.getString(titleColumn))
           item.putString("album", cursor.getString(albumColumn))
           item.putString("artist", cursor.getString(artistColumn))
-          item.putString("genreId", cursor.getString(genreIdColumn))
-          item.putString("genreName", cursor.getString(genreNameColumn))
 
           item.putString("contentUri", "content://media" + externalContentUri.path + "/" + id)
 
@@ -114,9 +106,7 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         MediaStore.Audio.Media.MIME_TYPE,
         MediaStore.Audio.Media.TITLE,
         MediaStore.Audio.Media.ALBUM,
-        MediaStore.Audio.Media.ARTIST,
-        MediaStore.Audio.Media.GENRE_ID,
-        MediaStore.Audio.Media.GENRE
+        MediaStore.Audio.Media.ARTIST
       ).forEach { file ->
         mediaList.pushMap(file)
       }
@@ -135,9 +125,7 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         MediaStore.Video.Media.MIME_TYPE,
         MediaStore.Video.Media.TITLE,
         MediaStore.Video.Media.ALBUM,
-        MediaStore.Video.Media.ARTIST,
-        null,
-        null
+        MediaStore.Video.Media.ARTIST
       ).forEach { file ->
         mediaList.pushMap(file)
       }
