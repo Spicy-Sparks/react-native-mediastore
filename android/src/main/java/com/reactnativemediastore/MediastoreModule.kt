@@ -26,8 +26,8 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
       titleColumn: String,
       albumColumn: String,
       artistColumn: String,
-      genreIdColumn: String,
-      genreNameColumn: String
+      genreIdColumn: String?,
+      genreNameColumn: String?
     ): Array<WritableMap> {
 
       val files = mutableListOf<WritableMap>()
@@ -115,8 +115,8 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         MediaStore.Audio.Media.TITLE,
         MediaStore.Audio.Media.ALBUM,
         MediaStore.Audio.Media.ARTIST,
-        MediaStore.Audio.Media.GENRE_ID,
-        MediaStore.Audio.Media.GENRE
+        MediaStore.Audio.Genres.NAME,
+        MediaStore.Audio.Genres._ID
       ).forEach { file ->
         mediaList.pushMap(file)
       }
