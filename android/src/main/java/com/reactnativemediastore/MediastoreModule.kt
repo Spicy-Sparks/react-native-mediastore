@@ -27,7 +27,7 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
       albumColumn: String,
       artistColumn: String,
       genreIdColumn: String,
-      genreNameColumn: Strimg
+      genreNameColumn: String
     ): Array<WritableMap> {
 
       val files = mutableListOf<WritableMap>()
