@@ -80,7 +80,7 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
           val itemPathSplits = itemPath.split('/').filter { x -> x.isNotEmpty() }
 
           if (itemPath.isNotEmpty()) {
-            if (itemPath == path) {
+            if (itemPath == searchPath) {
               val item = Arguments.createMap()
               val id = cursor.getLong(idColumn)
 
