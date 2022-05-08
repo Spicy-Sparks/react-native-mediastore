@@ -1,6 +1,7 @@
 import { NativeModules } from 'react-native';
 
 type MediastoreFileType = {
+  isDirectory: boolean,
   id: number,
   name: string,
   duration: number,
@@ -11,11 +12,12 @@ type MediastoreFileType = {
   artist: string,
   genreId: string,
   genreName: string,
-  contentUri: string
+  contentUri: string,
+  path: string
 }
 
 type MediastoreType = {
-  readAudioVideoExternalMedias(): Promise<Array<MediastoreFileType>>;
+  readAudioVideoExternalMedias(path: string): Promise<Array<MediastoreFileType>>;
 };
 
 const { Mediastore } = NativeModules;

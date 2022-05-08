@@ -1,13 +1,11 @@
 package com.reactnativemediastore
 
-import android.content.ContentResolver
-import android.content.ContentUris
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
-import android.provider.MediaStore.Images.Media.query
 import com.facebook.react.bridge.*
-import java.util.concurrent.TimeUnit
+import java.util.*
+
 
 class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
@@ -16,6 +14,8 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
     }
 
     private fun mapFiles(
+      path: String,
+      existingFolders: MutableMap<String, Boolean>,
       collection: Uri,
       externalContentUri: Uri,
       idColumn: String,
@@ -25,10 +25,21 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
       mimeColumn: String,
       titleColumn: String,
       albumColumn: String,
-      artistColumn: String
-    ): Array<WritableMap> {
+      artistColumn: String,
+      relPathColumn: String
+    ): Pair<Array<WritableMap>, MutableMap<String, Boolean>> {
 
-      val files = mutableListOf<WritableMap>()
+      var searchPath: String = path
+
+      if (searchPath.isNotEmpty() && searchPath.first() == '/')
+        path.drop(1).also { searchPath = it }
+
+      if (searchPath.isNotEmpty() && searchPath.last() != '/')
+        "$searchPath/".also { searchPath = it }
+
+      val searchPathSplits = searchPath.split('/').filter { x -> x.isNotEmpty() }
+
+      val items = mutableListOf<WritableMap>()
 
       val projection = arrayOf(
         idColumn,
@@ -38,8 +49,12 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         mimeColumn,
         titleColumn,
         albumColumn,
-        artistColumn
+        artistColumn,
+        relPathColumn
       )
+
+      val selection = if (searchPath != "") "$relPathColumn = ?" else null
+      val arguments = if (searchPath != "") arrayOf(searchPath) else null
 
       val query = reactApplicationContext.contentResolver.query(
         collection,
@@ -48,6 +63,7 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         null,
         null
       )
+
       query?.use { cursor ->
         val idColumn = cursor.getColumnIndexOrThrow(idColumn)
         val nameColumn = cursor.getColumnIndexOrThrow(nameColumn)
@@ -57,32 +73,56 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         val titleColumn = cursor.getColumnIndexOrThrow(titleColumn)
         val albumColumn = cursor.getColumnIndexOrThrow(albumColumn)
         val artistColumn = cursor.getColumnIndexOrThrow(artistColumn)
+        val relPathColumn = cursor.getColumnIndexOrThrow(relPathColumn)
 
         while (cursor.moveToNext()) {
+          val itemPath = cursor.getString(relPathColumn)
+          val itemPathSplits = itemPath.split('/').filter { x -> x.isNotEmpty() }
 
-          val item = Arguments.createMap()
-          val id = cursor.getLong(idColumn)
+          if (itemPath.isNotEmpty()) {
+            if (itemPath == path) {
+              val item = Arguments.createMap()
+              val id = cursor.getLong(idColumn)
 
-          item.putInt("id", id.toInt())
-          item.putString("name", cursor.getString(nameColumn))
-          item.putInt("duration", cursor.getInt(durationColumn))
-          item.putInt("size", cursor.getInt(sizeColumn))
-          item.putString("mime", cursor.getString(mimeColumn))
-          item.putString("title", cursor.getString(titleColumn))
-          item.putString("album", cursor.getString(albumColumn))
-          item.putString("artist", cursor.getString(artistColumn))
+              item.putString("contentUri", "content://media" + externalContentUri.path + "/" + id)
+              item.putInt("id", id.toInt())
+              item.putBoolean("isDirectory", false)
+              item.putString("name", cursor.getString(nameColumn))
+              item.putInt("duration", cursor.getInt(durationColumn))
+              item.putInt("size", cursor.getInt(sizeColumn))
+              item.putString("mime", cursor.getString(mimeColumn))
+              item.putString("title", cursor.getString(titleColumn))
+              item.putString("album", cursor.getString(albumColumn))
+              item.putString("artist", cursor.getString(artistColumn))
+              item.putString("path", itemPath)
 
-          item.putString("contentUri", "content://media" + externalContentUri.path + "/" + id)
+              items += item
+            } else if(itemPathSplits.size >= searchPathSplits.size + 1 && itemPathSplits.filterIndexed {
+                index, s -> if (searchPathSplits.size > index) (searchPathSplits[index] != s) else false
+            }.isEmpty()) {
+              val id = itemPathSplits[searchPathSplits.size]
 
-          files += item
+              if (existingFolders[id] != true) {
+                val item = Arguments.createMap()
+                val path = itemPathSplits.take(searchPathSplits.size + 1).joinToString(separator = "/", postfix = "/")
+
+                item.putBoolean("isDirectory", true)
+                item.putString("name", id)
+                item.putString("path", path)
+
+                existingFolders[id] = true
+                items += item
+              }
+            }
+          }
         }
       }
 
-      return files.toTypedArray()
+      return items.toTypedArray() to existingFolders
     }
 
     @ReactMethod
-    fun readAudioVideoExternalMedias(promise: Promise) {
+    fun readAudioVideoExternalMedias(path: String = "", promise: Promise) {
 
       data class Media(
         val uri: Uri,
@@ -90,9 +130,13 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         val duration: Int,
         val size: Int
       )
-      val mediaList = Arguments.createArray()
 
-      mapFiles(
+      val mediaList = Arguments.createArray()
+      val folders = mutableMapOf<String, Boolean>()
+
+      val (audioFiles, audioFolders) = mapFiles(
+        path,
+        folders,
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
           MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
         } else {
@@ -106,12 +150,16 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         MediaStore.Audio.Media.MIME_TYPE,
         MediaStore.Audio.Media.TITLE,
         MediaStore.Audio.Media.ALBUM,
-        MediaStore.Audio.Media.ARTIST
-      ).forEach { file ->
-        mediaList.pushMap(file)
-      }
+        MediaStore.Audio.Media.ARTIST,
+        MediaStore.Video.Media.RELATIVE_PATH
+      )
 
-      mapFiles(
+      audioFiles.forEach { mediaList.pushMap(it) }
+      folders += audioFolders
+
+      val (videoFiles, videoFolders) = mapFiles(
+        path,
+        folders,
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
           MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
         } else {
@@ -125,10 +173,12 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         MediaStore.Video.Media.MIME_TYPE,
         MediaStore.Video.Media.TITLE,
         MediaStore.Video.Media.ALBUM,
-        MediaStore.Video.Media.ARTIST
-      ).forEach { file ->
-        mediaList.pushMap(file)
-      }
+        MediaStore.Video.Media.ARTIST,
+        MediaStore.Video.Media.RELATIVE_PATH
+      )
+
+      videoFiles.forEach { mediaList.pushMap(it) }
+      folders += videoFolders
 
       promise.resolve(mediaList)
     }

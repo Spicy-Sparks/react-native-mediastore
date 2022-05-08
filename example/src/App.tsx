@@ -18,7 +18,7 @@ export default function App() {
           return
         }
 
-        const files = await Mediastore.readAudioVideoExternalMedias()
+        const files = await Mediastore.readAudioVideoExternalMedias("")
         console.log(files)
 
         if(files.length > 0) {
