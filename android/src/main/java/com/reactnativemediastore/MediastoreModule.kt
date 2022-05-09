@@ -62,7 +62,7 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         projection,
         null,
         null,
-        "$dateTakenColumn DESC"
+        "$dateTakenColumn ASC"
       )
 
       query?.use { cursor ->
