@@ -26,7 +26,8 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
       titleColumn: String,
       albumColumn: String,
       artistColumn: String,
-      relPathColumn: String
+      relPathColumn: String,
+      dateTakenColumn: String
     ): Pair<Array<WritableMap>, MutableMap<String, Boolean>> {
 
       var searchPath: String = path
@@ -61,7 +62,7 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         projection,
         null,
         null,
-        null
+        "$dateTakenColumn DESC"
       )
 
       query?.use { cursor ->
@@ -152,7 +153,8 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         MediaStore.Audio.Media.TITLE,
         MediaStore.Audio.Media.ALBUM,
         MediaStore.Audio.Media.ARTIST,
-        MediaStore.Video.Media.RELATIVE_PATH
+        MediaStore.Audio.Media.RELATIVE_PATH,
+        MediaStore.Audio.Media.DATE_TAKEN
       )
 
       audioFiles.forEach { mediaList.pushMap(it) }
@@ -175,7 +177,8 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         MediaStore.Video.Media.TITLE,
         MediaStore.Video.Media.ALBUM,
         MediaStore.Video.Media.ARTIST,
-        MediaStore.Video.Media.RELATIVE_PATH
+        MediaStore.Video.Media.RELATIVE_PATH,
+        MediaStore.Video.Media.DATE_TAKEN
       )
 
       videoFiles.forEach { mediaList.pushMap(it) }
