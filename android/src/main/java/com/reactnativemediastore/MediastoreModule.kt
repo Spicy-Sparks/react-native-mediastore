@@ -43,6 +43,7 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
       val items = mutableListOf<WritableMap>()
 
       val supportsRelativePaths = !relPathColumn.isNullOrEmpty() && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+      val supportsSort = !dateTakenColumn.isNullOrEmpty() && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
 
       var projection = arrayOf(
         idColumn,
@@ -60,13 +61,14 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
 
       val selection = if (searchPath != "" && supportsRelativePaths) "$relPathColumn = ?" else null
       val arguments = if (searchPath != "" && supportsRelativePaths) arrayOf(searchPath) else null
+      val sort = if (supportsSort) "$dateTakenColumn ASC" else null
 
       val query = reactApplicationContext.contentResolver.query(
         collection,
         projection,
         null,
         null,
-        "$dateTakenColumn ASC"
+        sort
       )
 
       query?.use { cursor ->
@@ -157,12 +159,8 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         MediaStore.Audio.Media.TITLE,
         MediaStore.Audio.Media.ALBUM,
         MediaStore.Audio.Media.ARTIST,
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-          MediaStore.Audio.Media.RELATIVE_PATH
-        } else {
-          ""
-        },
-        MediaStore.Audio.Media.DATE_TAKEN
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Audio.Media.RELATIVE_PATH else "",
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Audio.Media.DATE_TAKEN else "",
       )
 
       audioFiles.forEach { mediaList.pushMap(it) }
@@ -185,12 +183,8 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         MediaStore.Video.Media.TITLE,
         MediaStore.Video.Media.ALBUM,
         MediaStore.Video.Media.ARTIST,
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-          MediaStore.Video.Media.RELATIVE_PATH
-        } else {
-          ""
-        },
-        MediaStore.Video.Media.DATE_TAKEN
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Video.Media.RELATIVE_PATH else "",
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Video.Media.DATE_TAKEN else "",
       )
 
       videoFiles.forEach { mediaList.pushMap(it) }
