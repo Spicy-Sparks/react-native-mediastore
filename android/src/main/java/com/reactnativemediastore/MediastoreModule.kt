@@ -42,7 +42,9 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
 
       val items = mutableListOf<WritableMap>()
 
-      val projection = arrayOf(
+      val supportsRelativePaths = !relPathColumn.isNullOrEmpty() && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+
+      var projection = arrayOf(
         idColumn,
         nameColumn,
         durationColumn,
@@ -50,12 +52,14 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         mimeColumn,
         titleColumn,
         albumColumn,
-        artistColumn,
-        relPathColumn
+        artistColumn
       )
 
-      val selection = if (searchPath != "") "$relPathColumn = ?" else null
-      val arguments = if (searchPath != "") arrayOf(searchPath) else null
+      if(supportsRelativePaths)
+        projection += relPathColumn
+
+      val selection = if (searchPath != "" && supportsRelativePaths) "$relPathColumn = ?" else null
+      val arguments = if (searchPath != "" && supportsRelativePaths) arrayOf(searchPath) else null
 
       val query = reactApplicationContext.contentResolver.query(
         collection,
@@ -74,15 +78,15 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         val titleColumn = cursor.getColumnIndexOrThrow(titleColumn)
         val albumColumn = cursor.getColumnIndexOrThrow(albumColumn)
         val artistColumn = cursor.getColumnIndexOrThrow(artistColumn)
-        val relPathColumn = cursor.getColumnIndexOrThrow(relPathColumn)
+        val relPathColumn = if(supportsRelativePaths) cursor.getColumnIndexOrThrow(relPathColumn) else null
 
         while (cursor.moveToNext()) {
-          val itemPath = cursor.getString(relPathColumn)
+          val itemPath = relPathColumn?.let { cursor.getString(it) }
 
-          if (itemPath != null && itemPath.isNotEmpty()) {
-            val itemPathSplits = itemPath.split('/').filter { x -> x.isNotEmpty() }
+          if (!supportsRelativePaths || (itemPath != null && itemPath.isNotEmpty())) {
+            val itemPathSplits = itemPath?.split('/')?.filter { x -> x.isNotEmpty() }
 
-            if (itemPath == searchPath) {
+            if (!supportsRelativePaths || itemPath == searchPath) {
               val item = Arguments.createMap()
               val id = cursor.getLong(idColumn)
 
@@ -99,7 +103,7 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
               item.putString("path", itemPath)
 
               items += item
-            } else if(itemPathSplits.size >= searchPathSplits.size + 1 && itemPathSplits.filterIndexed {
+            } else if(itemPathSplits != null && itemPathSplits.size >= searchPathSplits.size + 1 && itemPathSplits.filterIndexed {
                 index, s -> if (searchPathSplits.size > index) (searchPathSplits[index] != s) else false
             }.isEmpty()) {
               val id = itemPathSplits[searchPathSplits.size]
@@ -153,7 +157,11 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         MediaStore.Audio.Media.TITLE,
         MediaStore.Audio.Media.ALBUM,
         MediaStore.Audio.Media.ARTIST,
-        MediaStore.Audio.Media.RELATIVE_PATH,
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+          MediaStore.Audio.Media.RELATIVE_PATH
+        } else {
+          ""
+        },
         MediaStore.Audio.Media.DATE_TAKEN
       )
 
@@ -177,7 +185,11 @@ class MediastoreModule(reactContext: ReactApplicationContext) : ReactContextBase
         MediaStore.Video.Media.TITLE,
         MediaStore.Video.Media.ALBUM,
         MediaStore.Video.Media.ARTIST,
-        MediaStore.Video.Media.RELATIVE_PATH,
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+          MediaStore.Video.Media.RELATIVE_PATH
+        } else {
+          ""
+        },
         MediaStore.Video.Media.DATE_TAKEN
       )
 
